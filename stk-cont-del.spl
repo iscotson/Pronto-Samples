@@ -1,0 +1,80 @@
+// Delete stock-contract-price records 
+
+field   
+	ws-contract-no	like sp-contract-no uppercase
+	ws-division		pic x(4)
+
+
+procedure main
+    get system-control first
+	
+	do input-parms
+
+endprocedure
+
+//	ask for parameters
+//	==================
+screen	input-parms
+	allow entry
+	window @2,1 TO @20,80
+	title "Delete Selected Wholesale Contract/Division prices"  
+
+	set ws-contract-no = " "
+	set sys-tbl-type = "CP"
+	set sys-tbl-code = " "
+	accept ws-contract-no @7,25
+		title is "Contract No:"
+		help is "Enter Contract No:"
+		default is ws-contract-no
+		uppercase
+		on help-key
+			spl 'sys/m85codes'
+				parameters
+					sys-tbl-type
+					sys-tbl-code
+					'-e'
+					'enabled'
+				returning
+					ws-contract-no
+		re-enter optional	
+		end-on
+//
+	set ws-division = " "
+	accept ws-division @8,25
+		title is "Item Division:"
+		help is "Enter Item Division (Optional)"
+		default is ws-division
+
+	confirm
+	    prompt is 'Delete Contract Price Records? Y/N'
+    confirmed
+	    report 'Stock Supplier Deletions'	
+		do delete-records
+//		exit
+	endconfirm
+
+	endscreen
+	
+//	delete the Contract price records
+//	=================================
+procedure delete-records
+            lock-method is wait-with-timeout		
+            extract stock-contract-price 
+				lock
+			    on index sp-contract-no stock-code 
+                where ws-contract-no = sp-contract-no and 
+					  stock-code like string-concat(ws-division "%") 
+			detail
+				print 
+					sp-contract-no " :" 
+					stock-code " : " 
+					sp-contract-price[1] " - Deleted" 
+                delete stock-contract-price
+            endextract
+
+	close stock-contract-price
+	print "** End of Report **"
+
+	report finished
+
+endprocedure

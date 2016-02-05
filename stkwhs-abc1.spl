@@ -1,0 +1,84 @@
+//	Update all stock whs-detail ABC from Stock Master value based 
+// on external file of stock codes
+//
+object z-stkwhs
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Whs ABC-Class" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stkwhs read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Whs ABC-Class Update'
+        extract z-stkwhs
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            get stock-code stk-abc-class from stock-master 
+				lock
+                on index stock-code
+                key z-stock-code 
+				on error
+				print z-stock-code " 990 - not found"
+				else
+								
+				extract stock-warehouse-detail
+					on index stock-code whse-code
+					key z-stock-code " "
+					where stock-code = z-stock-code
+				detail
+			
+					print
+						z-stock-code
+						"  "
+						whse-code
+						"  ABC Class old : "
+						whse-abc-class
+						"  ABC Class New : "
+						stk-abc-class
+									
+					set whse-abc-class = stk-abc-class
+
+					update stock-warehouse-detail
+					set ws-num += 1
+				endextract
+			endon
+		endextract
+	close stock-master
+	close stock-warehouse-detail
+	close z-stkwhs
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

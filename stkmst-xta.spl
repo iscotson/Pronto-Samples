@@ -1,0 +1,69 @@
+//	Update stock master extra AKL_REFERENCE
+//
+object z-stkextra
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like zsme-stock-code
+	z-akl-reference		like zsme-akl-reference
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Mast Extra akl-reference" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stkextra read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Mast Extra AKL-Reference Update'
+        extract z-stkextra
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get zcus-stock-master-extra lock
+                on index zsme-stock-code
+                key z-stock-code
+				on error
+				print z-stock-code " - not found"
+				else
+				print
+					z-stock-code
+					"  AKL Reference old :"
+					zsme-akl-reference
+					"  New:"
+					z-akl-reference
+                set zsme-akl-reference = z-akl-reference
+                update zcus-stock-master-extra
+                endon
+		    set ws-num += 1
+        endextract
+	close zcus-stock-master-extra
+	close z-stkextra
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

@@ -1,0 +1,73 @@
+//	Update stock whs detail WAC where SOH = 0	
+
+object z-stkwhs
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-whse-code			like whse-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Whs WAC" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stkwhs read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Whs WAC for selected items'
+        extract z-stkwhs
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-warehouse-detail lock
+                on index stock-code whse-code
+                key z-stock-code z-whse-code
+				on error
+				print z-stock-code " Whs - not found"
+				else
+				if whse-avg-cost <> 0
+				print
+					z-stock-code
+					"  "
+					z-whse-code
+					"  Whs WAC old :"
+					whse-avg-cost
+					"  New:"
+					" 0.0"
+                set whse-avg-cost = 0.0
+                update stock-warehouse-detail
+				endif
+                endon
+		    set ws-num += 1
+        endextract
+	close stock-warehouse-detail
+	close z-stkwhs
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

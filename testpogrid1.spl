@@ -1,0 +1,55 @@
+// Purchase Order Grid records for updating dates
+
+field lf-query pic x(50)
+
+
+
+mode md-print
+prompt "&Print"
+help is "Print GR"
+
+
+procedure main
+    get system-control first
+	set lf-query = "is_potrans4.enq"
+    do display-records		
+endprocedure
+
+
+
+screen display-records
+	window @2,1 TO @20,80
+	title "Display P/O records"  
+	allowed search correct md-print
+	datagrid occurs 18
+			select 	purchase-order.*
+			from 	purchase-order
+			order 	po-order-no po-backorder-flag	
+
+detail
+				display po-order-no @2,1
+					title is "P/O"
+				display po-backorder-flag @2,2
+					title is "P/O Suffix"
+				display cre-accountcode @2,3
+					title is "Supplier"
+				accept po-user-only-date1 @2,4
+					title is "Arrival date"
+				accept po-user-only-num1 @2,5
+					title is "No of Pallets"
+				accept po-user-only-num2 @2,6
+					title is "No of Ctns"
+
+confirm auto
+confirmed
+	switch screen-mode()
+		case md-print
+		query lf-query
+			parameters are po-order-no po-backorder-flag
+			on error
+				message "this didnt work"
+			end-on
+	end-switch
+end-confirm
+
+endscreen

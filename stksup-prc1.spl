@@ -1,0 +1,73 @@
+//	Update stock-supplier price
+//
+object z-item-prc
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-cre-accountcode	like cre-accountcode
+	z-sup-last-buy-price	like sup-last-buy-price
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Supplier Price" @4,11 inverse
+        scale 200
+    accept lf-filename @12,20
+        help 'Enter filename'
+    validation
+        open z-item-prc read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock-Supp Price Update'
+        extract z-item-prc
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            get stock-supplier lock
+                on index stock-code cre-accountcode
+                key z-stock-code z-cre-accountcode
+				on error
+					print z-stock-code " " z-cre-accountcode " - not found"
+				else
+					print
+					z-stock-code
+					"  "
+					z-cre-accountcode
+					"  Price Old :"
+					sup-last-buy-price
+					"  New:"
+					z-sup-last-buy-price
+					set sup-last-buy-price = z-sup-last-buy-price
+					update stock-supplier
+					set ws-num += 1		
+				endon				
+        endextract
+	close stock-supplier
+	close z-item-prc
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

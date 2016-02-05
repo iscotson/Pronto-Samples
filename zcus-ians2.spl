@@ -1,0 +1,50 @@
+// Sample Screen (Form or Data grid) Row Validation Trigger 
+// This trigger is 'attached' to a form or data grid as a 
+// Screen Trigger - Type: Row Filter'. For example this trigger could be 
+// used to control which users view a PO. 
+// -------------------------------------------------------------
+
+procedure library-init // 1st time only
+	field
+		gf-login					pic x(15)
+		gf-user-position 			pic x(15)
+		gf-po-position				pic x(15)
+		set gf-login = login-id()
+
+		get system-control first
+
+		        get system-user
+                on index user-id sys-comp-code 
+					key gf-login sys-consolidation-division
+				on error
+					set gf-user-position = " " 
+				else
+					set gf-user-position = user-position
+                endon
+
+endprocedure
+
+procedure creditor-validation user-trigger
+    parameter
+        lp-po-user-name       like po-user-name
+	local field
+		lf-po-user			  like lp-po-user-name
+	//	
+		if lp-po-user-name != lf-po-user
+			set lf-po-user = lp-po-user-name
+		    get system-user
+            on index user-id sys-comp-code 
+				key lp-po-user-name sys-consolidation-division
+				on error					
+					set gf-po-position = " " 
+				else
+					set gf-po-position = user-position
+                endon
+		endif
+//
+		if gf-po-position = gf-user-position
+			exit(0)	//ok - user is allowed to view these PO's 
+		else           //  
+			exit(1)	//Fail  - row is skipped (hidden)
+		endif
+//		

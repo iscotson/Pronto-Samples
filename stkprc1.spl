@@ -1,0 +1,111 @@
+//	Insert stock-price records
+//
+object z-stock-price
+    type is external 
+    separator  ","
+	record
+	z-stock-code					like stock-code
+	z-prc-region-code				like prc-region-code
+	z-prc-wholesale-price			like prc-wholesale-price
+	z-prc-break-qty					like prc-break-qty
+	z-prc-break-price				like prc-break-price
+	z-prc-start-prom-date			like prc-start-prom-date
+	z-prc-prom-price				like prc-prom-price
+	z-prc-end-prom-date				like prc-end-prom-date
+	z-prc-recommend-retail			like prc-recommend-retail
+	z-prc-sales-tax-code			like prc-sales-tax-code
+	z-prc-airfreight-price			like prc-airfreight-price
+	z-prc-date-last-change			like prc-date-last-change
+	z-prc-price-type-code			like prc-price-type-code
+	z-prc-sales-tax-payable-amount	like prc-sales-tax-payable-amount
+	z-prc-discount-code				like prc-discount-code
+	z-prc-recommend-retail-inc-tax	like prc-recommend-retail-inc-tax
+	z-prc-non-taxable-component		like prc-non-taxable-component
+	z-prc-reason-code				like prc-reason-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Insert Stock Price Records" @4,11 inverse
+        scale 200
+    accept lf-filename @12,20
+        help 'Enter filename'
+    validation
+        open z-stock-price read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock-Price Records Insert'
+		open stock-price
+        extract z-stock-price
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+	
+            get stock-master lock
+                on index stock-code
+                key is z-stock-code
+			on error
+				print z-stock-code " - not found"
+				else
+				set stock-code = z-stock-code
+				set	prc-region-code = z-prc-region-code
+				set	prc-wholesale-price = z-prc-wholesale-price
+				set	prc-break-qty[1] = z-prc-break-qty[1]
+				set	prc-break-qty[2] = z-prc-break-qty[2]
+				set	prc-break-qty[3] = z-prc-break-qty[3]
+				set	prc-break-qty[4] = z-prc-break-qty[4]
+				set prc-break-price[1] = z-prc-break-price[1]
+				set prc-break-price[2] = z-prc-break-price[2]
+				set prc-break-price[3] = z-prc-break-price[3]
+				set prc-break-price[4] = z-prc-break-price[4]
+				set prc-start-prom-date	= z-prc-start-prom-date
+				set prc-prom-price	= z-prc-prom-price
+				set prc-end-prom-date = z-prc-end-prom-date
+				set prc-recommend-retail = z-prc-recommend-retail
+				set prc-sales-tax-code	= z-prc-sales-tax-code
+				set prc-airfreight-price = z-prc-airfreight-price
+				set prc-date-last-change = z-prc-date-last-change
+				set prc-price-type-code = z-prc-price-type-code
+				set prc-sales-tax-payable-amount = z-prc-sales-tax-payable-amount
+				set prc-discount-code = z-prc-discount-code
+				set prc-recommend-retail-inc-tax = z-prc-recommend-retail-inc-tax
+				set prc-non-taxable-component = z-prc-non-taxable-component
+				set prc-reason-code = z-prc-reason-code
+				insert stock-price 
+				on error 
+					print 'error inserting record in stock-price file' 
+					print stock-code " " prc-region-code
+				else
+					set ws-num += 1
+				endon 			
+			endon
+
+        endextract
+	close stock-master
+	close z-stock-price
+	close stock-price
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

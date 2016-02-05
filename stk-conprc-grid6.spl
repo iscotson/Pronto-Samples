@@ -1,0 +1,38 @@
+// WIP code for  stock-contract-price grid records 
+window @1,1 to @20,125 
+title "screen for contract prices" 
+
+allow search correct 
+primary stock-contract-price 
+	 on index sp-contract-no stock-code 
+datagrid occurs 10 
+
+before 
+display "All employees:" @17,2 
+detail 
+accept employee-no @1,2 pic x(10) title is "Employee" 
+accept em-surname @1,4 pic x(20) title is "Surname" 
+display em-given-names @1,6 pic x(20) title is "Given Names" 
+display em-sex @1,8 pic x(1) title is "Sex" 
+display em-pay-freq @1,9 title "Pay Freq" 
+
+confirm auto 
+message "here is confirm" 
+before 
+message "here is before-confirmed" 
+
+not-confirmed 
+message "here is not-confirmed " 
+after 
+message "here is after-confirm" 
+
+endconfirm 
+message "here is AFTER endconfirm" 
+after 
+message "BINGO.here is AFTER from the screen" 
+endscreen 
+
+// and it will stop at the BINGO 
+
+
+

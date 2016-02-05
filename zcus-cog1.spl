@@ -1,0 +1,9 @@
+// Sample Pgm to initiate Cognos triggered schedule
+// -------------------------------------------------------------
+
+
+
+procedure main
+	command "java"
+	parameters are "-jar" "/pro/pronto/ProCog_Trigger/ProCog_Trigger.jar" 	"cognosdev10ga:9300" "ProCogCap" "iscotson" "ian321" "UAT" "testcog1"
+endprocedure

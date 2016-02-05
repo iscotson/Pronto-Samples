@@ -1,0 +1,75 @@
+// update stock-x-reference records to 0 qty
+object z-stk-lbl
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+//	z-sxr-code			like sxr-code
+	endrecord
+
+field ws-num            pic 999999
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+//	lf-sxr-code-old			like sxr-code
+
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock-X-Reference" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stk-lbl read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+
+    confirm
+        prompt is 'Proceed Y/N'
+    confirmed
+        report 'Stock LBL Update'
+        extract z-stk-lbl
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+//	update stock LBL
+            extract stock-x-reference 
+                on index stock-code sxr-type sxr-code
+                key is z-stock-code "SL" " "
+				finish when stock-code != z-stock-code
+				
+				detail
+					set sxr-qty = 0	
+					update stock-x-reference
+					on error
+						print z-stock-code " Update error"	
+					else	
+						print
+						stock-code " : "
+						sxr-code
+						" - updated to qty 0"
+						set ws-num += 1						
+					endon	
+			endextract
+        endextract
+	close stock-x-reference
+	close z-stk-lbl
+	report finished
+        message 'Finished - updated ' ws-num pause
+	endconfirm
+
+endprocedure

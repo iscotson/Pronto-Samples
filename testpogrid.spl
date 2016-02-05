@@ -1,0 +1,40 @@
+// Purchase Order Grid records for updating dates
+
+// field
+
+procedure main
+    get system-control first
+    do display-records		
+endprocedure
+
+
+
+screen display-records
+	window @2,1 TO @20,80
+	title "Display P/O records"  
+	allowed search correct
+	datagrid occurs 18
+			select 	purchase-order.*
+			from 	purchase-order
+			order 	po-order-no po-backorder-flag	
+
+detail
+				display po-order-no @2,1
+					title is "P/O"
+				display po-backorder-flag @2,2
+					title is "P/O Suffix"
+				display cre-accountcode @2,3
+					title is "Supplier"
+				accept po-user-only-date1 @2,4
+					title is "Arrival date"
+				accept po-user-only-num1 @2,5
+					title is "No of Pallets"
+				accept po-user-only-num2 @2,6
+					title is "No of Ctns"
+confirm
+endconfirm
+
+endscreen
+
+
+

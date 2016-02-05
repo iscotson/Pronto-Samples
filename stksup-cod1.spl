@@ -1,0 +1,74 @@
+//	Update stock-supplier supplier item code
+
+object z-stksup
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-accountcode		like cre-accountcode
+	z-sup-stock-code	like sup-stock-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Supplier Supplier item code" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stksup read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Sup Item code'
+        extract z-stksup
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            get stock-supplier lock
+                on index stock-code cre-accountcode
+                key z-stock-code z-accountcode
+				on error
+					print z-stock-code " " z-accountcode " - not found"
+				else
+					print
+						z-stock-code
+						"  "
+						z-accountcode
+						"  item Old :"
+						sup-stock-code
+						"  item New: "
+						z-sup-stock-code
+					set sup-stock-code = z-sup-stock-code
+					update stock-supplier
+					set ws-num += 1	
+			endon			
+        endextract
+	close stock-supplier
+	close z-stksup
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure
+

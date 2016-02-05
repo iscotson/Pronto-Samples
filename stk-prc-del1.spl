@@ -1,0 +1,68 @@
+// Delete nominated RE price records 
+//
+object z-item-prc
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-region-code		like prc-region-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Delete nominated RE price records" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-item-prc read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Delete nominated RE price records'
+        extract z-item-prc
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-price lock
+                on index stock-code prc-region-code 
+                key z-stock-code z-region-code
+				on error
+				print z-stock-code "  " z-region-code  " - not found"
+				else
+				print
+					z-stock-code
+					"  Prc Region Code: "
+					z-region-code
+					"  Rec-Ret-Prc: "
+					prc-recommend-retail
+                delete stock-price
+                endon
+		    set ws-num += 1
+        endextract
+	close stock-price
+	close z-item-prc
+	report finished
+        message 'Finished - records deleted ' ws-num pause
+    endconfirm
+endprocedure

@@ -1,0 +1,55 @@
+// Purchase Order Grid records for updating dates
+//
+mode md-Exit
+prompt "&Exit"
+help is "Ians Exit"
+	
+//	read/display the PO records
+//	=================================
+//
+screen display-records
+	window @2,1 TO @20,80
+	title "Display P/O records" 
+	allow find search correct md-exit 
+	datagrid occurs 18
+//
+select
+	purchase-order.*
+from 	
+	purchase-order
+// where 	
+//	cre-accountcode like "COTY%"  
+order 	po-order-no po-backorder-flag
+//	
+	accept po-order-no @2,1
+		title is "P/O"
+		read-only
+		//
+	accept po-backorder-flag @2,2
+		title is "P/O Suffix"
+		read-only
+		//
+	accept cre-accountcode @2,3
+		title is "Supplier"
+		read-only
+		//
+	accept po-user-only-date1 @2,4
+		title is "Arrival date"
+		//
+	accept po-user-only-num1 @2,5
+		title is "No of Pallets"
+		//
+	accept po-user-only-num2 @2,6
+		title is "No of Ctns"
+		//
+confirm auto
+confirmed
+	switch screen-mode()
+		case md-exit
+		exit
+	end-switch
+end-confirm
+//
+endscreen//display-records---------------------------------------------------------------------------------------------------
+
+

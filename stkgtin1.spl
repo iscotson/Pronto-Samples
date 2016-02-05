@@ -1,0 +1,81 @@
+// update stock-unit-conversion records to new APN code
+object z-stk-gtin
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-div-code			pic x(4)
+	z-uom-code 			like suc-unit-desc
+	z-apn-number		like suc-trade-unit-no
+	endrecord
+
+field ws-num            pic 999999
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+	lf-apn-number-old		like suc-trade-unit-no
+
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock-Unit-Conversion" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stk-gtin read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+
+    confirm
+        prompt is 'Proceed Y/N'
+    confirmed
+        report 'Stock GTIN Update'
+        extract z-stk-gtin
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+//	update stock gtin
+            extract stock-unit-conversion 
+                on index stock-code suc-unit-desc suc-trade-unit-no
+                key is z-stock-code z-uom-code " "
+				finish when stock-code != z-stock-code or suc-unit-desc != z-uom-code
+				
+				detail
+					set lf-apn-number-old = suc-trade-unit-no
+					set suc-trade-unit-no = z-apn-number	
+					update stock-unit-conversion
+					on error
+						print z-apn-number ":" z-stock-code " already exists"	
+					else	
+						print
+						lf-apn-number-old " : "
+						stock-code 
+						"  "
+						suc-unit-desc
+						" - updated to "
+						z-apn-number
+					set ws-num += 1						
+					endon	
+			endextract
+        endextract
+	close stock-unit-conversion
+	close z-stk-gtin
+	report finished
+        message 'Finished - updated ' ws-num pause
+	endconfirm
+
+endprocedure

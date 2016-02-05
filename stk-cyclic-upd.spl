@@ -1,0 +1,69 @@
+//	Update Stock Cyclic code
+//
+object z-item-sct
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-cyclic			like stk-cyclic-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Cyclic Code" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-item-sct read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Cyclic Update'
+        extract z-item-sct
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-master lock
+                on index stock-code 
+                key z-stock-code
+				on error
+				print z-stock-code " - not found"
+				else
+				print
+					z-stock-code
+					"  Cyclic Old :"
+					stk-cyclic-code
+					"  New:"
+					z-cyclic
+                set stk-cyclic-code = z-cyclic
+                update stock-master
+                endon
+		    set ws-num += 1
+        endextract
+	close stock-master
+	close z-item-sct
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

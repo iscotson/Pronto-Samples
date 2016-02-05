@@ -1,0 +1,86 @@
+// update stock-supplier records to new supplier code
+object z-sup-cpy
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-sup-code-old      like cre-accountcode
+	z-sup-code-new		like cre-accountcode
+	endrecord
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock-Supplier Record" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-sup-cpy read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+
+    confirm
+        prompt is 'Proceed Y/N'
+    confirmed
+        report 'Stock Supplier Update'
+        extract z-sup-cpy
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            if z-sup-code-old = spaces
+                print z-sup-code-old "spaces supplier-old code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            if z-sup-code-new = spaces
+                print z-sup-code-new "spaces supplier-new code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+//	copy stock suppliers
+            get stock-supplier lock
+                on index cre-accountcode stock-code
+                key z-sup-code-old z-stock-code
+			on error
+				print z-sup-code-old ":" z-stock-code "** Not on Stock/Supplier"
+			else
+				set cre-accountcode = z-sup-code-new	
+	            set sup-date-last-change = 16-APR-2012		
+				update stock-supplier
+				on error
+					print z-sup-code-new ":" z-stock-code " already exists"	
+				else	
+				print
+					z-sup-code-old " : "
+					stock-code " - updated to "
+					z-sup-code-new			
+				endon
+			endon
+
+        endextract
+
+	close stock-supplier
+	close z-sup-cpy
+	report finished
+
+	endconfirm
+
+endprocedure

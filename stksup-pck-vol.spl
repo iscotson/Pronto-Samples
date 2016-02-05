@@ -1,0 +1,71 @@
+//	Update stock-supplier pack cubic size
+//
+object z-item-pck
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-pack-cubic-size	like stk-pack-cubic-size
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Supplier Pack Cubic Size" @4,11 inverse
+        scale 200
+    accept lf-filename @12,20
+        help 'Enter filename'
+    validation
+        open z-item-pck read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock-Supp Pack Cubic Size Update'
+        extract z-item-pck
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+            extract stock-supplier 
+                on index stock-code cre-accountcode
+                key is z-stock-code " "
+				finish when stock-code != z-stock-code
+				detail
+				if sup-pack-cubic-metres = 0
+					print
+					z-stock-code
+					"  Pack Cubic Old :"
+					sup-pack-cubic-metres
+					"  New:"
+					z-pack-cubic-size
+					set sup-pack-cubic-metres = z-pack-cubic-size
+					update stock-supplier
+					set ws-num += 1		
+				endif				
+			endextract
+        endextract
+	close stock-supplier
+	close z-item-pck
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

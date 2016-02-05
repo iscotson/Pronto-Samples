@@ -1,0 +1,71 @@
+//	Update stock whs detail Min1
+
+object z-stkwhs
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-whse-min-stock	like whse-min-stock
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Whs Min Stock" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stkwhs read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Whs Min Stock'
+        extract z-stkwhs
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-warehouse-detail lock
+                on index stock-code whse-code
+                key z-stock-code "990"
+				on error
+				print z-stock-code " 990 - not found"
+				else
+				print
+					z-stock-code
+					"  "
+					"990"
+					"  Whs min old :"
+					whse-min-stock
+					"  New:"
+					z-whse-min-stock
+                set whse-min-stock = z-whse-min-stock
+                update stock-warehouse-detail
+                endon
+		    set ws-num += 1
+        endextract
+	close stock-warehouse-detail
+	close z-stkwhs
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

@@ -1,0 +1,74 @@
+//	Update stock master table stk-import-tariff-code
+//
+object z-stk-typ1
+    type is external 
+    separator  ","
+	record
+		z-stock-code		like stock-code
+		z-imp-tariff		like stk-import-tariff-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+	
+	
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update stk-import-tariff-code" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stk-typ1 read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock stk-import-tariff-code update'
+        extract z-stk-typ1
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-master lock
+                on index stock-code 
+                key z-stock-code
+				on error
+					print z-stock-code " - not found"
+				else
+								
+				print
+					z-stock-code		
+					"  Old stk import tariff code :"
+					stk-import-tariff-code
+					"  New stk import tariff code :"
+					z-imp-tariff																		
+					set stk-import-tariff-code = z-imp-tariff
+					update stock-master
+					set ws-num += 1
+				
+                endon
+        endextract
+	close stock-master
+	close z-stk-typ1
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure
+

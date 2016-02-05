@@ -1,0 +1,74 @@
+//	Update stock supplier Price/UOM
+
+object z-stksup
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Supplier Price and UOM" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stksup read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Sup Price/UOM Stock'
+        extract z-stksup
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            extract stock-supplier 
+                on index stock-code cre-accountcode
+                key is z-stock-code " "
+				finish when stock-code != z-stock-code
+
+				detail
+					print
+						z-stock-code
+						"  "
+						cre-accountcode
+						"  UOM Old :"
+						sup-unit-desc
+						"  UOM New:"
+						"EACH"
+					set sup-unit-desc = "EACH"
+					set sup-economic-order-qty = sup-unit-conversion-factor
+					set sup-last-buy-price = sup-last-buy-price / sup-unit-conversion-factor
+					set sup-unit-conversion-factor = 1
+					update stock-supplier
+					set ws-num += 1				
+				endextract
+        endextract
+	close stock-supplier
+	close z-stksup
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure
+
