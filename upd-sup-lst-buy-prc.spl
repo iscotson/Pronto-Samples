@@ -1,0 +1,78 @@
+//	Update  sup-last-buy-price on stock supplier record
+//
+object z-stk-supp
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-cre-accountcode	like cre-accountcode
+	z-sup-last-buy-price like sup-last-buy-price
+		endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+	
+	
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update sup-last-buy-price" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-stk-supp read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'sup-last-buy-price Update'
+        extract z-stk-supp
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-supplier lock
+                on index stock-code cre-accountcode
+                key z-stock-code z-cre-accountcode
+				on error
+					print z-stock-code " - not found"
+				else
+						
+					print
+						z-stock-code		
+						"  Supplier :"
+						cre-accountcode
+						"  New Cost :"
+						z-sup-last-buy-price
+						"   Old Cost :" 
+						sup-last-buy-price
+															
+					set sup-last-buy-price = z-sup-last-buy-price
+											
+					update stock-supplier
+					set ws-num += 1
+				
+                endon
+        endextract
+	close stock-supplier
+	close z-stk-supp
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

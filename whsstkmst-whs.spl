@@ -1,0 +1,73 @@
+//	Update warehouse-stock-master with new whs 
+//
+object z-whs-stock-master
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Whs-stk-mst whs code" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-whs-stock-master read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Whs-stock-master Whs Update'
+        extract z-whs-stock-master
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get warehouse-stock-master lock
+                on index stock-code wsm-whse-code
+                key z-stock-code "980"
+				on error
+				print z-stock-code "980  - not found"
+				else
+                set wsm-whse-code = " "
+                update warehouse-stock-master
+				on error
+				print z-stock-code "  - already exists"
+				else
+				print
+					z-stock-code
+					"  "
+					" Whs old:"
+					"980"
+					"  New:"
+					"  "
+				endon
+                endon
+		    set ws-num += 1
+        endextract
+	close warehouse-stock-master
+	close z-whs-stock-master
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure
