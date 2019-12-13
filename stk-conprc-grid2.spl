@@ -1,0 +1,27 @@
+// Using Priamry file access stock-contract-price grid records 
+
+procedure main
+    get system-control first
+	lock-method is wait-with-timeout	
+	do display-records
+
+endprocedure
+	
+//	read/display the Contract price records
+//	=================================
+screen display-records
+	window @2,1 TO @20,80
+	title "Display Wholesale Contract/Item prices"  
+			allowed are SEARCH
+            primary stock-contract-price 
+			    on index sp-contract-no stock-code 
+			datagrid occurs 18
+			detail
+				display sp-contract-no @2,1
+					title is "Contract No"
+				display stock-code @2,2
+					title is "stock-code"
+				display sp-contract-price[1] @2,3
+					title is "Contract Price"
+endscreen
+

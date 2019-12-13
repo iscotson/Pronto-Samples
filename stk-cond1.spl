@@ -1,0 +1,100 @@
+//	Update Stock Master condition code, ABC Class
+//
+object z-item-cond
+    type is external 
+    separator  ","
+	record
+	z-stock-code		like stock-code
+	z-condition-code	like stk-condition-code
+	z-abc-class			like stk-abc-class
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+	lf-desc1					pic x(6)
+	lf-desc2					pic x(6)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Stock Master Condition/ABC Code" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-item-cond read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Stock Condition Update'
+        extract z-item-cond
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-stock-code = spaces
+                print z-stock-code "spaces stock code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get stock-master lock
+                on index stock-code 
+                key z-stock-code
+				on error
+					print z-stock-code " - not found"
+				else
+				
+					if z-condition-code != spaces	
+						set lf-desc1 = "  New:"
+					else
+						set lf-desc1 = "  N/A:" 
+					endif
+
+					if z-abc-class != spaces	
+						set lf-desc2 = "  New:"
+					else
+						set lf-desc2 = "  N/A:" 
+					endif
+				
+				print
+					z-stock-code		
+					"  Condition Old :"
+					stk-condition-code
+					lf-desc1
+					z-condition-code
+					"  ABC Old: "
+					stk-abc-class
+					lf-desc2
+					z-abc-class
+					
+				if z-condition-code != spaces
+					set stk-condition-code = z-condition-code
+				endif
+
+				if z-abc-class != spaces
+					set stk-abc-class = z-abc-class
+				endif
+
+				if	lf-desc1 = "  New:" or 
+					lf-desc2 = "  New:"
+					update stock-master
+					set ws-num += 1
+				endif
+                endon
+        endextract
+	close stock-master
+	close z-item-cond
+	report finished
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+endprocedure

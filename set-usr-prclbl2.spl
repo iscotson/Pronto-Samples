@@ -1,0 +1,68 @@
+//	Set Lbl printer code per signed on user
+
+field   
+	lf-printer-name	like zuwl-printer-name 
+	lf-user-id 		like zuwl-user-id
+	lf-lbl-code 	like zuwl-lbl-code
+	lf-whse-code	like zuwl-whse-code
+
+
+procedure main
+    get system-control first
+	
+	do input-parms
+	exit
+endprocedure
+
+//	ask for parameters
+//	==================
+screen	input-parms
+	allow entry
+	window @2,1 TO @10,20
+	title "Chg Lbl Prt"  
+
+	set lf-user-id = login-id()
+	set lf-whse-code = "990"
+	set lf-lbl-code = "PRCMED"
+	set lf-printer-name = " "
+	accept lf-printer-name @5,2
+		title is "Printer Name:"
+		default is lf-printer-name
+
+    validation
+		if lf-printer-name not in { "df-nz-dc-gr3" "df-nz-dc-gr4" "df-nz-dc-gr5" "dc-nz-dc-gr6" }
+            message 'Invalid Printer'
+            reenter optional
+		endif
+    endvalidation
+
+
+	do update-printer
+
+	endscreen
+	
+//	Update the User Printer record
+//	=================================
+procedure update-printer
+
+		    get zcus-user-whse-lblprnter lock
+            on index zuwl-user-id zuwl-whse-code zuwl-lbl-code
+				key lf-user-id lf-whse-code lf-lbl-code
+				on error
+            message 'Invalid Printer'
+            reenter optional					
+//					abort 
+				else
+					if lf-printer-name != spaces
+						set zuwl-printer-name = lf-printer-name
+						update zcus-user-whse-lblprnter
+					endif
+//					if lf-printer-name in { "zebra-network" "zebra-train1" }
+//						update zcus-user-whse-lblprnter
+//					endif
+
+
+                endon
+			close zcus-user-whse-lblprnter
+
+endprocedure

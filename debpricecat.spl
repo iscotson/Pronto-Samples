@@ -1,0 +1,63 @@
+//Update debtor master price cat code
+object z-deb-price-cat
+    type is external 
+    separator  "|"
+	record
+	z-deb-code            like accountcode
+	z-deb-price-cat        like dr-pricing-category
+	endrecord
+
+field ws-num            pic 999999
+
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Update Debtor Pricing Category" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-deb-price-cat read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+    confirm
+        prompt is 'Convert/Load file Y/N'
+    confirmed
+        report 'Debtor Pricing Category Update Report'
+        extract z-deb-price-cat
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-deb-code = spaces
+                print z-deb-code "spaces debtor code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+            get deb-master lock
+                on index accountcode 
+                key z-deb-code
+				on error
+				print z-deb-code " - not found"
+				else
+				print z-deb-code "-  Old Code :" dr-pricing-category "  New Code :" z-deb-price-cat
+                set dr-pricing-category = z-deb-price-cat
+                update deb-master
+                endon
+		    set ws-num += 1
+        endextract
+        message 'Finished - updated ' ws-num pause
+    endconfirm
+	close deb-master
+	close z-deb-price-cat
+	report finished
+endprocedure

@@ -1,0 +1,75 @@
+//	Set Customer Type field - for re-structure of pricing
+//		RS customers do not change as per SOK
+
+field	ws-num			pic 999999
+
+procedure main
+
+    //
+    get system-control
+        display company-name @1,2
+
+display "Set Customer Type" @4,11 inverse
+        scale 200
+
+    confirm
+        prompt is 'Proceed Y/N'
+    confirmed
+
+// check all customers
+// ================
+        extract deb-master
+            all
+        detail
+	set dr-cust-type = " "
+
+	if dr-pricing-category in { "01" "13" "15" "16" "19" }
+		set dr-cust-type = "VC"
+	endif
+
+	if dr-pricing-category in { "02" "12" "14" "18" }
+		set dr-cust-type = "C1"
+	endif
+
+	if dr-pricing-category in { "17" }
+		set dr-cust-type = "C2"
+	endif
+
+	if dr-pricing-category = "04"
+		if dr-marketing-flag = "RTE"
+			set dr-cust-type = "C2"
+		elseif dr-marketing-flag = "DIS"
+//			set dr-cust-type = "RS"
+			set dr-cust-type = "L3"
+		endif
+	endif
+
+	if accountcode in {"ABERD" "ACTPA" "ALLLI" "OKSER" "STAFF" "TASPAK" }
+//		set dr-cust-type = "RS"
+		set dr-cust-type = "L3"
+	endif
+
+	if accountcode in {"BAKDE2" }
+		set dr-cust-type = "C2"
+	endif
+
+	if accountcode in {"NOREA" "P43700" }
+		set dr-cust-type = "VC"
+	endif
+
+//	and update file
+
+//	fix - set price cat to blank for C2 custs
+	if dr-pricing-category = "04" and dr-cust-type = "C2"
+		set dr-pricing-category = " "
+	endif
+
+		update deb-master
+
+        endextract
+
+	close deb-master
+
+    endconfirm
+
+endprocedure

@@ -1,0 +1,83 @@
+////////////////////////////////////////////////////////////////
+////	remove item master and associated records - used as part of 
+////		conversion/migration only!!!!
+///////////////////////////////////////////////////////////////
+
+procedure main 
+	do remove-stock-master 
+endprocedure
+
+object z-item-del
+	type is external
+	separator is "|"
+	file is 'GOSSitemdel.txt'
+	record is
+	z-stock-code	like stock-code
+	end
+
+field	num-recs	type decimal
+
+procedure remove-stock-master
+window
+	confirm
+		prompt is 'Remove Stock Masters (Y/N)? '
+	confirmed
+
+		open z-item-del
+		open stock-master 
+		open stock-price
+		open stock-supplier
+		open stock-warehouse-detail 
+		open stock-unit-conversion 
+		set num-recs = 0
+
+		extract z-item-del all
+		detail
+		if z-stock-code = spaces
+		continue
+		endif
+
+			get stock-master lock
+				key is z-stock-code 
+			on error
+			else
+			delete stock-master 
+			set num-recs += 1
+			endon
+			get stock-price lock
+				key is z-stock-code 
+			on error
+			else
+			delete stock-price 
+			endon
+			get stock-supplier lock
+				key is z-stock-code 
+			on error
+			else
+			delete stock-supplier 
+			endon
+			get stock-warehouse-detail lock
+				key is z-stock-code 
+			on error
+			else
+			delete stock-warehouse-detail 
+			endon
+			get stock-unit-conversion lock
+				key is z-stock-code 
+			on error
+			else
+			delete stock-unit-conversion 
+			endon
+		endextract
+
+		close z-item-del
+		close stock-master
+		close stock-price
+		close stock-supplier
+		close stock-warehouse-detail 
+		close stock-unit-conversion
+		display num-recs @23,1 pic 9(7)
+		display "Records removed " @23,9
+		pause
+endconfirm
+endprocedure

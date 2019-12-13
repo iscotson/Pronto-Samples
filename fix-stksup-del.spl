@@ -1,0 +1,74 @@
+// Delete stock-supplier records and supplier masters
+object z-sup-del
+    type is external 
+    separator  "|"
+	record
+	z-sup-code            like accountcode
+	endrecord
+
+procedure main
+local field
+    l-error-flag            type boolean
+    lf-filename             pic x(50)
+    //
+    get system-control
+        display company-name @1,2
+
+display "Delete Stock-Supplier & Supplier" @4,11 inverse
+        scale 200
+    accept lf-filename @10,20
+        help 'Enter filename'
+    validation
+        open z-sup-del read-only
+            file is lf-filename
+        on error
+            message 'file does not exist / cannot be opened'
+            reenter optional
+        endon
+    endvalidation
+
+    confirm
+        prompt is 'Proceed Y/N'
+    confirmed
+        report 'Stock Supplier Deletions'
+        extract z-sup-del
+            all
+        detail
+            set l-error-flag = FALSE
+            if z-sup-code = spaces
+                print z-sup-code "spaces supplier code not valid"
+                set l-error-flag = TRUE
+				continue
+            endif
+
+// delete supplier master
+            get cre-master lock
+                on index cre-accountcode 
+                key z-sup-code
+			on error
+				print z-sup-code "** Not on Suplier Master"
+			else
+				print z-sup-code "Deleted" 
+                delete cre-master
+            endon
+
+//	delete stock suppliers
+			extract stock-supplier
+				on index cre-accountcode stock-code
+				where z-sup-code = cre-accountcode
+			detail
+				print
+					cre-accountcode " : "
+					stock-code " - deleted"
+				delete stock-supplier
+		endextract
+
+        endextract
+	close cre-master
+	close stock-supplier
+	close z-sup-del
+	report finished
+
+	endconfirm
+
+endprocedure

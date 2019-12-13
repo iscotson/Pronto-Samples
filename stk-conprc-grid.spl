@@ -1,0 +1,51 @@
+// 1st cut test code stock-contract-price grid records 
+
+field   
+	ws-contract-no	like sp-contract-no uppercase
+	ws-division		pic x(4)
+
+
+procedure main
+    get system-control first
+	lock-method is wait-with-timeout	
+	do display-records
+
+endprocedure
+
+
+//	confirm
+//	    prompt is 'Delete Contract Price Records? Y/N'
+//    confirmed
+//	    report 'Stock Supplier Deletions'	
+//		do display-records
+//		exit
+//	endconfirm
+
+//	endscreen
+	
+//	read/display the Contract price records
+//	=================================
+screen display-records
+	window @2,1 TO @20,80
+	title "Display Wholesale Contract/Item prices"  
+
+//            primary stock-contract-price 
+//			    on index sp-contract-no stock-code 
+			select 	sp-contract-no stock-code
+			from 	stock-contract-price
+			where 	sp-contract-no = "DI02" and 
+					  stock-code like "5710%" 
+//			detail		  
+//			end-select
+			data-grid occurs 10
+			detail
+				display sp-contract-no @2,1
+					title is "Contract No"
+				display stock-code @2,2
+					title is "stock-code"
+endscreen
+//
+//            endextract
+//	close stock-contract-price
+
+// endprocedure

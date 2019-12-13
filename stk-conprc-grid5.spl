@@ -1,0 +1,72 @@
+// Extra mode button stock-contract-price grid records 
+
+field
+	lf-contract-price type is NUMERIC
+//	ws-exit type is NUMERIC
+	lr-tbl-code like sys-tbl-code
+	lf-tbl-code like sys-tbl-code
+
+procedure main
+    get system-control first
+	lock-method is wait-with-timeout	
+
+	mode Exitxx
+	help is "Ians Exit"
+	perform exit-pgm
+
+	mode button1
+	help is "Lookup Contract Code"
+	perform button1-pgm
+
+	do display-records
+		Search Exitxx button1
+		
+endprocedure
+
+procedure exit-pgm
+//    set ws-exit = 1
+//    exit
+endprocedure
+
+procedure button1-pgm
+		set lr-tbl-code = " "
+		set sys-tbl-type = "CP"
+		set sys-tbl-code = " "
+		spl 'sys/m85codes'
+				parameters
+					sys-tbl-type
+					sys-tbl-code
+					'-e'
+					'enabled'
+				returning
+					lr-tbl-code
+//		if lr-tbl-code <> " "
+//			set lf-tbl-code = lr-tbl-code
+//		endif
+//		exit 0
+endprocedure
+	
+//	read/display the Contract price records
+//	=================================
+screen display-records
+	window @2,1 TO @20,80
+	title "Display Wholesale Contract/Item prices"  
+//			allowed is SEARCH Exitxx
+			select 	sp-contract-no 
+					stock-code 
+					lf-contract-price = sp-contract-price[1]
+			from 	stock-contract-price
+			where 	sp-contract-no like string-concat(lf-tbl-code "%")  
+//					stock-code like "571015%" 
+			order 	sp-contract-no stock-code	
+			datagrid occurs 18
+			detail
+				display sp-contract-no @2,1
+					title is "Contract No"
+				display stock-code @2,2
+					title is "Stock code"
+				display lf-contract-price @2,3
+					title is "Contract Price"
+
+endscreen
+

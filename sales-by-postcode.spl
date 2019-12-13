@@ -1,0 +1,277 @@
+//	sales qty by post code report	
+//--------------------------------------------------------------------------
+//
+#include "../../bms/include/bmsdef.spl"
+
+field   i                       type decimal
+	ws-debug		pic 9
+	ws-from-date		type date
+	ws-to-date		type date
+	ws-from-group		like stock-group
+	ws-to-group		like stock-group
+	ws-bill-to		like bill-to
+	zshpqty			like sol-shipped-qty
+	zshpamt			like sol-shipped-amount
+	zmonth			pic 99
+	zyear			pic 9999
+	ws-count		pic 999999
+
+object	tmp-work
+	type memory
+record
+	stock-code
+	stock-group
+	stk-description
+	bill-to
+	zshpqty
+	zshpamt
+	zyear
+	zmonth
+	so-dl-postcode
+	so-dl-text
+end-record
+key is	stock-code zyear zmonth bill-to so-dl-postcode
+	unique
+
+// 
+procedure main
+
+        get system-control first
+
+	do input-parms
+
+endprocedure
+
+//	ask for parameters
+//	==================
+screen	input-parms
+	allow entry
+	window @2,1 TO @20,80
+	title "Sales by Delivery Address Report" 
+
+	set ws-from-date = today()
+	accept ws-from-date @5,25
+		title is "Start Invoice Date:"
+		default ws-from-date
+
+	set ws-to-date = today()
+	accept ws-to-date @6,25
+		title is "End Invoice Date:"
+		default ws-to-date
+
+	set ws-bill-to = " "
+	accept ws-bill-to @8,25
+		title is "Bill To (blank for ALL):"
+		default ws-bill-to
+
+	set ws-from-group = " "
+	accept ws-from-group @10,25
+		title is "From Stock Group:"
+		default ws-from-group
+
+	set ws-to-group = "~"
+	accept ws-to-group @11,25
+		title is "To Stock Group:"
+		default ws-to-group
+
+	confirm auto
+	confirmed
+		do build-records
+		do produce-report
+		exit
+	endconfirm
+
+	endscreen
+
+//	create the work file
+//	====================
+procedure	build-records	
+	window @19,40 to @24,80
+		no-hide
+		color white
+		display "Creating Report" @21,50 flashing
+
+	open tmp-work	truncate temporary
+
+	set ws-debug = 0
+	extract sales-order-archive
+		on index so-order-no so-bo-suffix
+		where so-invoice-date between ws-from-date and ws-to-date
+			and so-credit-note-no = 0
+			and so-order-status not in { "98" "99" }
+	detail
+
+//	get customer detail and bill-to code
+		get deb-master
+			key is so-cust-code
+		on error
+			set bill-to = "????"
+			set shortname = "Not On File"
+		else
+//		get bill to shortname
+			get deb-master
+				key is bill-to
+			on error
+				set bill-to = "????"
+				set shortname = "Not On File"
+			endon
+		endon
+//	check if specific bill-to
+		if ws-bill-to != " " and ws-bill-to != bill-to
+			continue
+		endif
+
+//	set the year and month
+		set zyear = year(so-invoice-date)
+		set zmonth = month(so-invoice-date)
+
+		extract sales-order-line-archive
+			on index so-order-no so-bo-suffix
+			key is so-order-no so-bo-suffix
+			next same so-order-no so-bo-suffix
+		detail
+			if sol-line-type = "SN" and sol-shipped-qty > 0
+			get stock-master
+				key is stock-code
+			on error
+				continue
+			endon
+
+//		check stock group is on range
+				if stock-group between ws-from-group and ws-to-group
+					do load-work	
+				endif
+			endif
+		endextract
+
+	endextract
+
+endprocedure
+
+//	load work file
+procedure	load-work
+
+//	determine post code - start with delivery file
+	get sales-order-delivery-archive
+		key is so-order-no so-bo-suffix "DA"
+	on error
+//		read name and address file
+		get name-and-address-master
+			key is so-cust-code "DA"
+		on error
+			get name-and-address-master
+				key is so-cust-code "C"
+			on error
+				set so-dl-postcode = " "
+				set so-dl-text[*] = " "
+			else
+				set so-dl-postcode = postcode
+				set so-dl-text[1] = na-name
+				set so-dl-text[2] = na-company
+				set so-dl-text[3] = na-street
+				set so-dl-text[4] = na-suburb
+				set so-dl-text[5] = na-country
+				set so-dl-text[6] = na-address-6
+				set so-dl-text[7] = na-address-7
+			endon
+		else
+			set so-dl-postcode = postcode
+				set so-dl-text[1] = na-name
+				set so-dl-text[2] = na-company
+				set so-dl-text[3] = na-street
+				set so-dl-text[4] = na-suburb
+				set so-dl-text[5] = na-country
+				set so-dl-text[6] = na-address-6
+				set so-dl-text[7] = na-address-7
+		endon
+	end
+
+//	update work file
+	get tmp-work
+		key is stock-code zyear zmonth bill-to so-dl-postcode
+	on error
+		set zshpqty = sol-shipped-qty 
+		set zshpamt = sol-shipped-amount - sol-shipped-sales-tax-amt
+		insert tmp-work
+	else	
+		set zshpqty += sol-shipped-qty
+		set zshpamt += sol-shipped-amount - sol-shipped-sales-tax-amt
+		update tmp-work
+	endon
+
+endprocedure
+
+//	create the report
+//	=================
+procedure	produce-report
+
+	report "Sales by Delivery Address Report"
+		header is rep-head
+		width 240
+		length 64
+	page
+
+//	read work file and print
+	extract tmp-work
+		on index stock-code zyear zmonth bill-to so-dl-postcode
+	detail
+		do rep-detail
+	endextract
+
+//	finish up
+//	=========
+	report finished
+	close sales-order-archive
+	close sales-order-line-archive
+
+endprocedure
+
+//==============================================================================
+
+//	Report Header
+procedure	rep-head
+	print
+		company-name
+		"Sales by Delivery Address" in col 50
+		"Date:" in col 122
+		today() in col 128
+		"Page:" in col 144
+		pageno() in col 153
+	print
+		" " in col 20
+		"Invoice Dates From: " ws-from-date "  To: " ws-to-date
+		"    Bill-To: " ws-bill-to
+		"    Stock Group From: " ws-from-group "  To: " ws-to-group
+	skip
+	print
+		"Item" in col 1
+		"Description" in col 17
+		"Group" in col 48
+		"Year" in col 54
+		"Mth" in col 59
+		"Qty" in col 67
+		"Amount" in col 77
+		"Bill-To" in col 85
+		"PostCde" in col 95
+		"Delivery Address" in col 103 
+
+endprocedure
+
+//	Report Detail
+procedure	rep-detail
+	print
+		stock-code in col 1
+		stk-description in col 17
+		stock-group in col 49
+		zyear in col 54
+		zmonth in col 59
+		zshpqty in col 63 pic ------9
+		zshpamt in col 70 pic --,---,--9.99
+		bill-to in col 85
+		so-dl-postcode in col 96
+		so-dl-text[1] in col 103
+		so-dl-text[2] in col 133
+		so-dl-text[3] in col 163
+		so-dl-text[4] in col 193
+
+endprocedure

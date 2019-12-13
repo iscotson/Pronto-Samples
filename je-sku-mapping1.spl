@@ -1,0 +1,21 @@
+procedure main
+                do display-records
+endprocedure
+
+screen display-records
+                window @2,1 TO @20,80
+                title "Just Enough SKU Mapping"  
+                allowed search entry remove correct
+
+datagrid occurs 18
+                                                select    *
+                                                from      zjrcus-je-sku      
+detail
+                                                                
+accept aus-stock-code   @2,1
+                title is "AU Stock Code" 
+
+accept nz-stock-code     @2,3
+                title is "NZ Stock Code"
+
+endscreen

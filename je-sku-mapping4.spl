@@ -1,0 +1,24 @@
+procedure main
+                do display-records
+endprocedure
+
+screen display-records
+                window @2,1 TO @20,80
+                title "Just Enough SKU Mapping"  
+                primary zjrcus-je-sku
+                datagrid occurs 18
+                allowed search entry remove correct
+before
+                position zjrcus-je-sku
+                         on index aus-stock-code
+                         key is spaces
+detail
+accept aus-stock-code   @2,1
+                title is "AU Stock Code" 
+accept nz-stock-code     @2,3
+                title is "NZ Stock Code"
+
+confirm auto
+confirmed
+endconfirm
+endscreen

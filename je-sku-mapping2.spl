@@ -1,0 +1,20 @@
+screen display-records
+                window @2,1 TO @20,80
+                title "Just Enough SKU Mapping"  
+                primary zjrcus-je-sku
+                datagrid occurs 18
+                allowed search entry remove correct
+detail
+…
+
+Or
+screen display-records
+                window @2,1 TO @20,80
+                title "Just Enough SKU Mapping"  
+select    *
+                               from      zjrcus-je-sku      
+                                order by <key index>
+                datagrid occurs 18
+                allowed search entry remove correct
+                review-from-start
+detail

@@ -1,0 +1,38 @@
+// Using SQL file access stock-contract-price grid records 
+
+field
+	ws-contract-price type is NUMERIC
+
+
+procedure main
+    get system-control first
+	lock-method is wait-with-timeout	
+
+	do display-records
+
+endprocedure
+	
+//	read/display the Contract price records
+//	=================================
+screen display-records
+	window @2,1 TO @20,80
+	title "Display Wholesale Contract/Item prices"  
+			allowed is SEARCH 
+			select 	sp-contract-no 
+					stock-code 
+					ws-contract-price = sp-contract-price[1]
+			from 	stock-contract-price
+			where 	sp-contract-no like "%02"  
+//					stock-code like "571015%" 
+			order 	sp-contract-no stock-code	
+			datagrid occurs 18
+			detail
+				display sp-contract-no @2,1
+					title is "Contract No"
+				display stock-code @2,2
+					title is "Stock code"
+				display ws-contract-price @2,3
+					title is "Contract Price"
+
+endscreen
+
